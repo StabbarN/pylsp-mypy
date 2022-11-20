@@ -49,6 +49,7 @@ windows_flag: Dict[str, int] = (
     {"creationflags": subprocess.CREATE_NO_WINDOW} if os.name == "nt" else {}  # type: ignore
 )
 
+default_dmypy_status_file = ".pylsp_dmypy_status"
 
 def parse_line(line: str, document: Optional[Document] = None) -> Optional[Dict[str, Any]]:
     """
@@ -237,9 +238,9 @@ def pylsp_lint(
 
         if shutil.which("dmypy"):
             # dmypy exists on path
-            # -> use mypy on path
+            # -> use dmypy on path
             completed_process = subprocess.run(
-                ["dmypy", "status"], stderr=subprocess.PIPE, **windows_flag
+                ["dmypy", "--status-file", default_dmypy_status_file], stderr=subprocess.PIPE, **windows_flag
             )
             errors = completed_process.stderr.decode()
             exit_status = completed_process.returncode
@@ -249,7 +250,7 @@ def pylsp_lint(
                     exit_status,
                     errors.strip(),
                 )
-                subprocess.run(["dmypy", "restart"], **windows_flag)
+                subprocess.run(["dmypy", "--status-file", default_dmypy_status_file, "restart"], **windows_flag)
         else:
             # dmypy does not exist on path, but must exist in the env pylsp-mypy is installed in
             # -> use dmypy via api
@@ -260,10 +261,10 @@ def pylsp_lint(
                     exit_status,
                     errors.strip(),
                 )
-                mypy_api.run_dmypy(["restart"])
+                mypy_api.run_dmypy(["--status-file", default_dmypy_status_file, "restart"])
 
         # run to use existing daemon or restart if required
-        args = ["run", "--"] + apply_overrides(args, overrides)
+        args = ["--status-file", default_dmypy_status_file, "run", "--"] + apply_overrides(args, overrides)
 
         if shutil.which("dmypy"):
             # dmypy exists on path
